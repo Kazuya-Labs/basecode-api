@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "create:controller": "node scripts/create-controller.js",
+    "create:middleware": "node scripts/create-middleware.js"
   },
   "keywords": [],
   "author": "",
