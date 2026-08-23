@@ -42,3 +42,7 @@ export function requireRole(role) {
     next();
   };
 }
+
+export function getCurrentUser(req) {
+  return req.session?.user ?? null;
+}

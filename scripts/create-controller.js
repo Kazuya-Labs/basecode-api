@@ -23,63 +23,44 @@ if (!["user", "admin"].includes(role)) {
 const targetPath = path.resolve("src/controller", `${name}Controller.js`);
 ensureNotExists(targetPath, "controller");
 
-const content = `import { eq } from "drizzle-orm";
-import { Router } from "express";
+const content = `import { Router } from "express";
 
-import { db } from "../database/db.js";
+import { deleteById, findPage, findById, insertOne, updateById } from "../database/crud.js";
 import { users as table } from "../database/schema.js"; // TODO: swap "users" for your table
-import { ok, fail } from "../lib/response.js";
 import { authenticatedUser, requireRole } from "../lib/auth.js";
+import { ok } from "../lib/response.js";
+import { ApiError, parsePagination } from "../utils/index.js";
 
 export const ${name}Router = Router();
 
 ${name}Router.use(authenticatedUser);
 
 ${name}Router.get("/", async (req, res) => {
-  const page = Math.max(Number(req.query.page) || 1, 1);
-  const limit = Math.min(Number(req.query.limit) || 10, 100);
-  const rows = await db
-    .select()
-    .from(table)
-    .limit(limit)
-    .offset(page * limit - limit);
-  return ok(res, rows);
+  const { page, limit } = parsePagination(req.query);
+  const { rows, meta } = await findPage(table, { page, limit });
+  return ok(res, rows, "${name} list", 200, meta);
 });
 
 ${name}Router.get("/:id", async (req, res) => {
-  const [row] = await db
-    .select()
-    .from(table)
-    .where(eq(table.id, req.params.id))
-    .limit(1);
-  if (!row) {
-    return fail(res, 404, "${name} not found");
-  }
+  const row = await findById(table, req.params.id);
+  if (!row) throw ApiError.notFound("${name} not found");
   return ok(res, row);
 });
 
 ${name}Router.post("/", requireRole("${role}"), async (req, res) => {
-  const [row] = await db.insert(table).values(req.body).returning();
+  const row = await insertOne(table, req.body);
   return ok(res, row, "${name} created", 201);
 });
 
 ${name}Router.put("/:id", requireRole("${role}"), async (req, res) => {
-  const [row] = await db
-    .update(table)
-    .set(req.body)
-    .where(eq(table.id, req.params.id))
-    .returning();
-  if (!row) {
-    return fail(res, 404, "${name} not found");
-  }
+  const row = await updateById(table, req.params.id, req.body);
+  if (!row) throw ApiError.notFound("${name} not found");
   return ok(res, row, "${name} updated");
 });
 
 ${name}Router.delete("/:id", requireRole("${role}"), async (req, res) => {
-  const [row] = await db.delete(table).where(eq(table.id, req.params.id)).returning();
-  if (!row) {
-    return fail(res, 404, "${name} not found");
-  }
+  const row = await deleteById(table, req.params.id);
+  if (!row) throw ApiError.notFound("${name} not found");
   return ok(res, row, "${name} deleted");
 });
 `;
