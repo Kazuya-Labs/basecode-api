@@ -2,11 +2,11 @@ import os from "node:os";
 
 import { Router } from "express";
 
-import { ok } from "../lib/response.js";
+import { ok } from "../../../lib/response.js";
 
-export const healthRouter = Router();
+const router = Router();
 
-healthRouter.get("/", (_req, res) => {
+router.get("/", (_req, res) => {
   return ok(
     res,
     {
@@ -18,3 +18,5 @@ healthRouter.get("/", (_req, res) => {
     "Service healthy",
   );
 });
+
+export default router;

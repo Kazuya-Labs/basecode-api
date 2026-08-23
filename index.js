@@ -5,7 +5,7 @@ import express from "express";
 
 import { authHandler } from "./src/lib/auth.js";
 import { logger } from "./src/lib/logger.js";
-import { healthRouter } from "./src/controller/healthController.js";
+import { buildApiRouter } from "./src/lib/autoRouter.js";
 import { corsMiddleware } from "./src/middleware/corsMiddleware.js";
 import {
   apiRateLimiter,
@@ -36,16 +36,17 @@ if (process.env.NODE_ENV !== "production") {
 // (numeric), which Express 5 only fills for RegExp routes
 app.use(/^\/auth(\/.*)/, authHandler);
 
-app.use("/api", apiRateLimiter);
-app.use("/api/health", healthRouter);
+async function start() {
+  // Controllers auto-mounted from src/controller/**/index.js (folder = URL)
+  app.use("/api", apiRateLimiter, await buildApiRouter());
 
-// Mount generated controllers here, e.g.:
-// app.use("/api/users", usersRouter);
+  app.use(notFoundMiddleware);
+  app.use(errorMiddleware);
 
-app.use(notFoundMiddleware);
-app.use(errorMiddleware);
+  const port = Number(process.env.PORT) || 3000;
+  app.listen(port, () => {
+    logger.info({ port }, `Server listening on port ${port}`);
+  });
+}
 
-const port = Number(process.env.PORT) || 3000;
-app.listen(port, () => {
-  logger.info({ port }, `Server listening on port ${port}`);
-});
+start();

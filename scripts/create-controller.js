@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 import path from "node:path";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 import {
   ensureNotExists,
   normalizeComponentName,
   toKebabCase,
+  toPascalCase,
 } from "./lib/cli.js";
 
 const [nameArg, ...flags] = process.argv.slice(2);
 const commandLabel = "create:controller <name> --role=[user|admin]";
 
 const name = normalizeComponentName(nameArg, commandLabel);
+const Pascal = toPascalCase(name);
 
 const roleArg = flags.find((flag) => flag.startsWith("--role="));
 const role = roleArg ? roleArg.split("=")[1] : "user";
@@ -20,54 +22,87 @@ if (!["user", "admin"].includes(role)) {
   process.exit(1);
 }
 
-const targetPath = path.resolve("src/controller", `${name}Controller.js`);
-ensureNotExists(targetPath, "controller");
+const targetDir = path.resolve("src/controller", role, name);
+ensureNotExists(path.join(targetDir, "index.js"), "controller");
+await mkdir(targetDir, { recursive: true });
 
-const content = `import { Router } from "express";
+const indexContent = `import { Router } from "express";
 
-import { deleteById, findPage, findById, insertOne, updateById } from "../database/crud.js";
-import { users as table } from "../database/schema.js"; // TODO: swap "users" for your table
-import { authenticatedUser, requireRole } from "../lib/auth.js";
-import { ok } from "../lib/response.js";
-import { ApiError, parsePagination } from "../utils/index.js";
+import { ok } from "../../../lib/response.js";
+import { ApiError, parsePagination } from "../../../utils/index.js";
+import * as ${name}Service from "./service.js";
 
-export const ${name}Router = Router();
+const router = Router();
 
-${name}Router.use(authenticatedUser);
-
-${name}Router.get("/", async (req, res) => {
-  const { page, limit } = parsePagination(req.query);
-  const { rows, meta } = await findPage(table, { page, limit });
+router.get("/", async (req, res) => {
+  const pagination = parsePagination(req.query);
+  const { rows, meta } = await ${name}Service.list${Pascal}(pagination);
   return ok(res, rows, "${name} list", 200, meta);
 });
 
-${name}Router.get("/:id", async (req, res) => {
-  const row = await findById(table, req.params.id);
+router.get("/:id", async (req, res) => {
+  const row = await ${name}Service.get${Pascal}(req.params.id);
   if (!row) throw ApiError.notFound("${name} not found");
   return ok(res, row);
 });
 
-${name}Router.post("/", requireRole("${role}"), async (req, res) => {
-  const row = await insertOne(table, req.body);
+router.post("/", async (req, res) => {
+  const row = await ${name}Service.create${Pascal}(req.body);
   return ok(res, row, "${name} created", 201);
 });
 
-${name}Router.put("/:id", requireRole("${role}"), async (req, res) => {
-  const row = await updateById(table, req.params.id, req.body);
+router.put("/:id", async (req, res) => {
+  const row = await ${name}Service.update${Pascal}(req.params.id, req.body);
   if (!row) throw ApiError.notFound("${name} not found");
   return ok(res, row, "${name} updated");
 });
 
-${name}Router.delete("/:id", requireRole("${role}"), async (req, res) => {
-  const row = await deleteById(table, req.params.id);
+router.delete("/:id", async (req, res) => {
+  const row = await ${name}Service.remove${Pascal}(req.params.id);
   if (!row) throw ApiError.notFound("${name} not found");
   return ok(res, row, "${name} deleted");
 });
+
+export default router;
 `;
 
-await writeFile(targetPath, content, "utf8");
+const serviceContent = `import {
+  deleteById,
+  findPage,
+  findById,
+  insertOne,
+  updateById,
+} from "../../../database/crud.js";
+import { users as table } from "../../../database/schema.js"; // TODO: swap "users" for your table
 
-console.log(`Created ${targetPath}`);
+export function list${Pascal}({ page, limit }) {
+  // Add business rules here (filters, ordering, scoping)
+  return findPage(table, { page, limit });
+}
+
+export function get${Pascal}(id) {
+  return findById(table, id);
+}
+
+export function create${Pascal}(data) {
+  // Validate / transform input before persisting
+  return insertOne(table, data);
+}
+
+export function update${Pascal}(id, data) {
+  return updateById(table, id, data);
+}
+
+export function remove${Pascal}(id) {
+  return deleteById(table, id);
+}
+`;
+
+await writeFile(path.join(targetDir, "index.js"), indexContent, "utf8");
+await writeFile(path.join(targetDir, "service.js"), serviceContent, "utf8");
+
+console.log(`Created ${path.join(targetDir, "index.js")}`);
+console.log(`Created ${path.join(targetDir, "service.js")}`);
 console.log(
-  `Next step: mount it in index.js with:\n  app.use("/api/${toKebabCase(name)}", ${name}Router);`,
+  `Auto-mounted at /api/${role}/${toKebabCase(name)} — restart the dev server to pick it up.`,
 );
