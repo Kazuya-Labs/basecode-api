@@ -9,7 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "create:controller": "node scripts/create-controller.js",
-    "create:middleware": "node scripts/create-middleware.js"
+    "create:middleware": "node scripts/create-middleware.js",
+    "create:reset-password": "node scripts/create-reset-password.js"
   },
   "keywords": [],
   "author": "",
