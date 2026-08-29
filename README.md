@@ -50,6 +50,32 @@ Smoke test: `GET /api/public/health` should return a `{ success: true, ... }` en
 | `pnpm run create:reset-password` | Scaffold a password-reset (OTP via email) feature |
 | `pnpm run create:oauth --provider=google,github` | Register OAuth login providers (google, github, facebook, discord, gitlab) |
 
+### Project generators (feature code isn't committed)
+
+The repo is a boilerplate — the reset-password and OAuth features are scaffolded
+**on demand** by generators, so the code only appears after you run them.
+
+```bash
+# Password reset (OTP via email)
+pnpm run create:reset-password
+# → controllers at src/controller/public/reset-password/ + src/lib/mailer.js
+#   adds users.password + password_reset_tokens to the schema, SMTP_* to .env.example
+# then: set SMTP_* in .env, run pnpm db:push, restart server
+#   POST /api/public/reset-password/request  { email }
+#   POST /api/public/reset-password/verify   { email, code, newPassword }
+
+# OAuth login (add one or more providers in a single command)
+pnpm run create:oauth --provider=google,github
+# → registers Google()/GitHub() in src/lib/auth.js + AUTH_<ID>_ID/SECRET in .env.example
+# supported: google, github, facebook, discord, gitlab
+# then: set the AUTH_* vars, add the authorized redirect URI
+#   {origin}/auth/callback/<provider>  (e.g. http://localhost:3000/auth/callback/google)
+```
+
+Auth.js reads the provider credentials from `AUTH_<PROVIDER>_ID` /
+`AUTH_<PROVIDER>_SECRET` env vars automatically (no secrets in source code).
+Login flow: `GET /auth/signin/<provider>` → external provider → callback → JWT cookie.
+
 ## Project Structure
 
 ```
