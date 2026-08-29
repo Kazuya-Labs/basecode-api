@@ -1,0 +1,16 @@
+# Local env & secrets — never bake into the image
+.env
+.env.local
+.env.*
+
+# Node modules (rebuilt in the image)
+node_modules
+
+# VCS & local-only docs
+.git
+.agents
+AGENTS.md
+
+# DB migrations & logs
+drizzle
+*.log

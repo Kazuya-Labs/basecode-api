@@ -150,3 +150,25 @@ All responses follow a consistent shape:
 - **Express 5**: async handler errors auto-forward to the error middleware
 - Identifiers/names in English
 - Branch per change: `feature|bugfix|refactor/<kebab-name>`; conventional commits (e.g. `feat: …`); never commit directly to `master`
+
+## Docker
+
+A multi-stage `Dockerfile` (Alpine, `node:24-alpine`) is provided for running the API as a container.
+
+```bash
+# Build
+docker build -t basecode-api .
+
+# Run (single-container setup: connect to Postgres on the host, pass secrets via -e)
+docker run -p 3000:3000 \
+  -e DATABASE_URL=postgres://user:password@HOST_IP:5432/basecode \
+  -e AUTH_SECRET=your-32-char-min-secret \
+  basecode-api
+```
+
+Notes:
+
+- The container runs `pnpm db:push` (pushes the schema to `DATABASE_URL`) before starting the API, so the four auth tables are created on first boot.
+- Secrets (`AUTH_SECRET`, `DATABASE_URL`) come from `-e`/env — never baked into the image (see `.dockerignore`).
+- `NODE_ENV=production` is set in the runtime image: morgan is disabled and 5xx error messages are hidden.
+- Postgres is expected to be reachable from the container (host IP, not `localhost`). This is intentionally a single `Dockerfile` with no Compose — add one if you want orchestrated Postgres.
