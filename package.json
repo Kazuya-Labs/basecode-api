@@ -10,7 +10,8 @@
     "db:push": "drizzle-kit push",
     "create:controller": "node scripts/create-controller.js",
     "create:middleware": "node scripts/create-middleware.js",
-    "create:reset-password": "node scripts/create-reset-password.js"
+    "create:reset-password": "node scripts/create-reset-password.js",
+    "create:oauth": "node scripts/create-oauth.js"
   },
   "keywords": [],
   "author": "",

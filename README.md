@@ -48,6 +48,7 @@ Smoke test: `GET /api/public/health` should return a `{ success: true, ... }` en
 | `pnpm run create:controller <name> --role=[user\|admin]` | Scaffold a folder-based controller |
 | `pnpm run create:middleware <name>` | Scaffold an Express middleware |
 | `pnpm run create:reset-password` | Scaffold a password-reset (OTP via email) feature |
+| `pnpm run create:oauth --provider=google,github` | Register OAuth login providers (google, github, facebook, discord, gitlab) |
 
 ## Project Structure
 
