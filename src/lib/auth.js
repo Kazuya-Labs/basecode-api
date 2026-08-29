@@ -2,6 +2,10 @@ import { ExpressAuth, getSession } from "@auth/express";
 
 import { fail } from "./response.js";
 
+/**
+ * Auth.js config (JWT cookie sessions). Roles ride the JWT via the callbacks.
+ * @type {import("@auth/express").ExpressAuthConfig}
+ */
 export const authConfig = {
   secret: process.env.AUTH_SECRET,
   trustHost: true,
@@ -21,8 +25,17 @@ export const authConfig = {
   },
 };
 
+/** Express middleware that handles the `/auth/*` endpoints. */
 export const authHandler = ExpressAuth(authConfig);
 
+/**
+ * Guard: reject with 401 if there is no authenticated session, otherwise
+ * populate `req.session` and continue.
+ * @param {import("express").Request} req
+ * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
+ * @returns {Promise<void>}
+ */
 export async function authenticatedUser(req, res, next) {
   const session = await getSession(req, authConfig);
   if (!session?.user) {
@@ -32,6 +45,11 @@ export async function authenticatedUser(req, res, next) {
   next();
 }
 
+/**
+ * Factory: guard that rejects with 403 unless the session user's role matches.
+ * @param {"user"|"admin"} role Required role
+ * @returns {import("express").RequestHandler}
+ */
 export function requireRole(role) {
   return async (req, res, next) => {
     const session = req.session ?? (await getSession(req, authConfig));
@@ -43,6 +61,11 @@ export function requireRole(role) {
   };
 }
 
+/**
+ * Get the authenticated user from a request (after an auth guard ran), or null.
+ * @param {import("express").Request} req
+ * @returns {object|null} Session user
+ */
 export function getCurrentUser(req) {
   return req.session?.user ?? null;
 }

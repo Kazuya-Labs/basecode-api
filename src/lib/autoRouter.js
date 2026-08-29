@@ -21,6 +21,12 @@ function discoverControllers() {
     .sort();
 }
 
+/**
+ * Build a router that auto-mounts every folder-based controller from
+ * `src/controller/**\/index.js`. Guards are inferred from the first path
+ * segment (`admin/` → auth + admin, `user/` → auth, else public).
+ * @returns {Promise<import("express").Router>}
+ */
 export async function buildApiRouter() {
   const apiRouter = Router();
 
